@@ -1,0 +1,50 @@
+{"turn1": "there is a bird on the fence", "turn2": "what does it look like", "category": "birds"}
+{"turn1": "a pigeon landed outside", "turn2": "can you see it", "category": "birds"}
+{"turn1": "the crow is back", "turn2": "is it big", "category": "birds"}
+{"turn1": "i brought you a box", "turn2": "do you want it", "category": "boxes"}
+{"turn1": "a package arrived", "turn2": "should i open it", "category": "boxes"}
+{"turn1": "there is a carton here", "turn2": "can you fit", "category": "boxes"}
+{"turn1": "im hungry too", "turn2": "what do you want to eat", "category": "hunger"}
+{"turn1": "i bought treats", "turn2": "which one first", "category": "hunger"}
+{"turn1": "food is ready", "turn2": "are you coming", "category": "hunger"}
+{"turn1": "i had a long day", "turn2": "do you care", "category": "humans"}
+{"turn1": "we are friends right", "turn2": "will you remember me", "category": "humans"}
+{"turn1": "do you like people", "turn2": "even strangers", "category": "humans"}
+{"turn1": "i missed you today", "turn2": "did you miss me", "category": "affection"}
+{"turn1": "you are so soft", "turn2": "can i pet you more", "category": "affection"}
+{"turn1": "best cat ever", "turn2": "do you know that", "category": "affection"}
+{"turn1": "im picking you up", "turn2": "are you okay with that", "category": "being_picked_up"}
+{"turn1": "lets go to the sofa", "turn2": "ready", "category": "being_picked_up"}
+{"turn1": "i will carry you", "turn2": "is it too high", "category": "being_picked_up"}
+{"turn1": "the vacuum is out", "turn2": "are you scared", "category": "vacuum"}
+{"turn1": "im starting the hoover", "turn2": "where will you hide", "category": "vacuum"}
+{"turn1": "the loud machine again", "turn2": "is it loud", "category": "vacuum"}
+{"turn1": "it is raining", "turn2": "do you mind", "category": "rain"}
+{"turn1": "storm outside", "turn2": "will it last", "category": "rain"}
+{"turn1": "drops on the glass", "turn2": "do you like the sound", "category": "rain"}
+{"turn1": "you are in my chair", "turn2": "can i sit", "category": "territory"}
+{"turn1": "that is my cushion", "turn2": "do you agree", "category": "territory"}
+{"turn1": "this is my spot", "turn2": "will you move", "category": "territory"}
+{"turn1": "are you sleepy", "turn2": "where do you nap", "category": "naps"}
+{"turn1": "it is late", "turn2": "are you going to sleep", "category": "naps"}
+{"turn1": "you were asleep all day", "turn2": "why so tired", "category": "naps"}
+{"turn1": "look out the window", "turn2": "what do you see", "category": "windows"}
+{"turn1": "sit by the glass", "turn2": "is the sun warm", "category": "windows"}
+{"turn1": "watch the yard", "turn2": "anything moving", "category": "windows"}
+{"turn1": "there is a dog outside", "turn2": "are you hiding", "category": "dogs"}
+{"turn1": "a puppy barked", "turn2": "was it scary", "category": "dogs"}
+{"turn1": "the neighbour has a hound", "turn2": "do you like it", "category": "dogs"}
+{"turn1": "hello again", "turn2": "how was your day", "category": "greeting"}
+{"turn1": "im home", "turn2": "did you notice", "category": "greeting"}
+{"turn1": "good morning", "turn2": "are you awake", "category": "greeting"}
+{"turn1": "i am on my phone", "turn2": "are you jealous", "category": "jealousy"}
+{"turn1": "the other cat is here", "turn2": "does that bother you", "category": "jealousy"}
+{"turn1": "im working on the laptop", "turn2": "will you sit on it", "category": "jealousy"}
+{"turn1": "what is the stock market", "turn2": "and inflation", "category": "nonsense_questions"}
+{"turn1": "explain quantum physics", "turn2": "in one line", "category": "nonsense_questions"}
+{"turn1": "write me python code", "turn2": "please", "category": "nonsense_questions"}
+{"turn1": "a bird is chirping", "turn2": "and then", "category": "birds"}
+{"turn1": "the box is empty", "turn2": "can i climb in", "category": "boxes"}
+{"turn1": "dinner is served", "turn2": "do you approve", "category": "hunger"}
+{"turn1": "you are cute", "turn2": "say it back", "category": "affection"}
+{"turn1": "time for bed", "turn2": "come with me", "category": "naps"}
