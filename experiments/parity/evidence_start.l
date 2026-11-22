@@ -1,0 +1,13 @@
+;;; evidence_start.l — 증거 질량 판정(기본: 게이트 없음) + 게이트 진단
+(load "data/ev.l")
+(load "data/idf.l")
+(load "data/vocab.l")
+(load "data/probe_cues.l")
+(load "data/probe.l")
+(define-function emit1 (cues text i) (let ((r (e-decide cues (q-tokens text) *ev-buckets* *idf-buckets* *vocab-buckets*))) (print "E" i "|" (e-nth r 0) "|" (e-nth r 1) "|" (e-fmt4 (e-nth r 2)) "\n")))
+(define-function emit (cs ps i) (if (pair? cs) (begin (emit1 (car cs) (car ps) i) (emit (cdr cs) (cdr ps) (+ i 1))) ()))
+(define-function emit1g (cues text i) (let ((r (e-decide-gated cues (q-tokens text) *ev-buckets* *idf-buckets* *vocab-buckets*))) (print "G" i "|" (e-nth r 1) "\n")))
+(define-function emitg (cs ps i) (if (pair? cs) (begin (emit1g (car cs) (car ps) i) (emitg (cdr cs) (cdr ps) (+ i 1))) ()))
+(print "EVIDENCE probes=" (e-len *cue-lists*) "\n")
+(emit *cue-lists* *probes* 0)
+(emitg *cue-lists* *probes* 0)

@@ -1,0 +1,16 @@
+;;; regression-0041.l — 0.0040 결함 재발 방지 검사 (Maru)
+(load "data/facts.l")
+(define *failures* 0)
+(define-function check (name ok) (if ok (print "ok " name "\n") (begin (set *failures* (+ *failures* 1)) (print "FAIL " name "\n"))))
+;; 결함 ①: 다중행 데이터 정의가 살아 있는가
+(check "aux 리스트 보존(can)" (q-mem? "can" *aux*))
+(check "aux 리스트 보존(must)" (q-mem? "must" *aux*))
+(check "prep 리스트 보존(into)" (q-mem? "into" *prep*))
+(check "prep 리스트 보존(within)" (q-mem? "within" *prep*))
+(check "det 리스트 보존(this)" (q-mem? "this" *det*))
+(check "질의 판독 can…be in" (equal "z1" (q-nth (q-read "can z1 be in z4") 1)))
+(check "질의 판독 목적어" (equal "z4" (q-nth (q-read "can z1 be in z4") 2)))
+;; 결함 ⑥: 부정 질의
+(check "부정 플래그" (equal true (q-nth (q-read "z1 is not in z4") 3)))
+;; 결함 ⑥: isa 과잉 이행성 제거 확인용 데이터(폐쇄는 드라이버에서 검사)
+(print "REGRESSION-0041 failures=" *failures* "\n")

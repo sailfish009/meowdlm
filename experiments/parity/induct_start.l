@@ -1,0 +1,6 @@
+;;; induct_start.l — 원문에서 단서 추출(파이썬 참조와 비교)
+(load "data/probe.l")
+(define-function emit1 (text i) (print "I" i "|" (i-join (i-cues text)) "\n"))
+(define-function emit (ps i) (if (pair? ps) (begin (emit1 (car ps) i) (emit (cdr ps) (+ i 1))) ()))
+(print "INDUCT probes=" (i-len *probes*) "\n")
+(emit *probes* 0)

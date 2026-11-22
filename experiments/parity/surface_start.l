@@ -1,0 +1,8 @@
+;;; surface_start.l — 도식 실현 출력 (범주 × seed)
+(load "data/surface_frames.l")
+(load "data/surface_slots.l")
+(load "data/surface_cats.l")
+(define-function emit1 (cat i) (let ((r (s-realize cat "probe" 2621440 *frames* *slots* 8))) (print "S" i ":" cat "=" (if (equal r ()) "NONE" r) "\n")))
+(define-function emit (cs i) (if (pair? cs) (begin (emit1 (car cs) i) (emit (cdr cs) (+ i 1))) ()))
+(print "SURFACE frames=" (s-len *frames*) " slots=" (s-len *slots*))
+(emit *cats* 0)

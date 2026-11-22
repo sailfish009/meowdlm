@@ -1,0 +1,1 @@
+(define *classes* (list "plant"))

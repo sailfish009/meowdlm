@@ -1,0 +1,8 @@
+;;; syntax_start.l — 문장 도출 판정 출력 (Maru)
+(load "data/syntax_grammar.l")
+(load "data/syntax_lexicon.l")
+(load "data/syntax_corpus.l")
+(define-function emit-c (ss i) (if (pair? ss) (begin (print "C" i (if (syn-accepts (car ss) *rules* *lexicon*) "1" "0")) (emit-c (cdr ss) (+ i 1))) ()))
+(print "SYNTAX rules=" (syn-len *rules*) " lex=" (syn-len *lexicon*) " corpus=" (syn-len *corpus*))
+(print "COVER " (syn-count-accepts *corpus* *rules* *lexicon*) "/" (syn-len *corpus*))
+(emit-c *corpus* 0)

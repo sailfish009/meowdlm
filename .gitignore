@@ -1,51 +1,12 @@
+# --- Maru 런타임 산출물(재생성 가능) ---
+state/
+cache/
+verification.log
+*.tmp
+
 # --- Python ---
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
 .venv/
 venv/
-env/
-ENV/
 .pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-htmlcov/
-build/
-dist/
-*.egg-info/
-
-# --- Learned artifacts vs measurements ---
-# The axiom basis and the LGG patterns are deterministic outputs of
-# `python3 src/induct.py` and `python3 src/lgg.py` (about 3 s on CPU) and are
-# committed on purpose, so a fresh clone can evaluate without a training step.
-# Measurements produced by the eval scripts are regenerated, so they are ignored.
-eval/*.json
-!eval/parity.json
-verification.log
-*.log
-
-# --- Model weights ---
-# The original MeowLLM checkpoint is fetched from the Hugging Face hub and is
-# used only to evaluate the upstream model against itself. Never committed.
-*.pt
-*.pth
-*.bin
-*.safetensors
-*.gguf
-/data/models/
-/models/
-
-# --- Editors and OS ---
-.vscode/
-.idea/
-.DS_Store
-Thumbs.db
-*.swp
-
-# --- Local scratch ---
-tmp/
-scratch/
-*.tmp

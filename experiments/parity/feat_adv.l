@@ -1,0 +1,20 @@
+;;; feat_adv.l — 0.0052 적대적 반례 13건 + 기존 증인 (0.0053)
+(define *src* (list
+  ;; 기존 증인 8건
+  (list "i" "sleep") (list "i" "sleeps") (list "me" "sleep") (list "they" "sleep")
+  (list "the" "cat" "chases" "a" "dog") (list "the" "cats" "chase" "a" "dog")
+  (list "the" "cat" "chases" "me") (list "the" "cat" "chases" "i")
+  ;; 적대적 13건
+  (list "you" "sleep") (list "it" "sleeps") (list "i" "is" "big") (list "he" "am" "big")
+  (list "the" "cat" "is") (list "the" "cat" "is" "sleep" "dogs" "cat")
+  (list "the" "cat" "sleeps" "dog" "dog" "dog") (list "the" "cat" "chases" "a" "dogs")
+  (list "the" "cat" "chases" "the") (list "he" "sleeps") (list "he" "sleep") (list "a" "dogs" "sleep")
+  (list "the" "cat" "is" "big")))
+(define-function lf-chs (s i n) (if (< i n) (cons (string-at s i) (lf-chs s (+ i 1) n)) ()))
+(define-function lf-mrg (a b) (if (pair? a) (cons (car a) (lf-mrg (cdr a) b)) b))
+(define-function lf-c2 (a b) (list->string (lf-mrg (lf-chs a 0 (string-length a)) (lf-chs b 0 (string-length b)))))
+(define-function lf-join (ws) (if (pair? ws) (if (pair? (cdr ws)) (lf-c2 (car ws) (lf-c2 " " (lf-join (cdr ws)))) (car ws)) (list->string ())))
+(define-function f-e1 (ws i) (let ((r (lf-check ws))) (print "F" i "|" (if (car r) "1" "0") "|" (lf-join ws) "|" (if (car r) "-" (lf-join (if (pair? (lf-nth r 1)) (lf-nth r 1) (list (lf-nth r 1))))) "\n")))
+(define-function f-emit (ss i) (if (pair? ss) (begin (f-e1 (car ss) i) (f-emit (cdr ss) (+ i 1))) ()))
+(print "ADV cases=" (lf-len *src*) "\n")
+(f-emit *src* 0)
