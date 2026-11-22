@@ -1,53 +1,59 @@
-# meowdlm — 연역학습 실험 (Maru/LLVM IR 네이티브 추론)
+# meowdlm - deductive learning experiment (Maru / LLVM IR native inference)
 
-원본 MeowLLM(3.45M 파라미터, gradient 학습)과 **같은 대화 과제**를 gradient 없이 수행하는
-실험입니다. 판정·도출·생성·저장은 Maru(LLVM IR Lisp)에서 돌고, 파이썬은 웹 수집과 데이터
-변환에만 남습니다.
+Same conversation task as the original MeowLLM (3.45M parameters, gradient training), solved
+without gradients. Judgement, derivation, generation and persistence run in Maru (an LLVM IR
+Lisp); Python remains only for web fetching and data conversion.
 
 ```text
-src/meow/*.l       Maru 네이티브 모델 (커널·증거·문법·자질·증명·상태)
-data/*.l           정적 데이터 (일부는 소스로 취급 — data/README.md 참조)
-tools/             데이터 변환기 + S-표현 정렬기(sx.py)
-tools/fetch/       웹 수집(파이썬 허용 영역) → cache/ (git 제외)
-experiments/parity 드라이버 + 파이썬 참조 차등
-tests/             Maru 자체 검사
-docs/              릴리스 기록(음성 결과 포함)
+src/meow/*.l        Maru-native model (kernel, evidence, grammar, features, certificates, state)
+data/*.l            static data (some files are sources - see data/README.md)
+tools/              data converters + S-expression sorter (sx.py)
+tools/fetch/        web collection (the Python-permitted area) -> cache/ (git-ignored)
+experiments/parity  drivers and Python-reference differentials
+tests/              Maru self-tests
+docs/               release records, including negative results and retractions
 ```
 
-## 실행
+## Running
 
 ```bash
 cd meowdlm_v0.0053
-MARU=/research/dlm_v0.0284/maru-compiler ./verify.sh   # 게이트 26건, 약 13분
+MARU=/research/dlm_v0.0284/maru-compiler ./verify.sh    # 21 sections, 31 gates, ~13 min
 ```
 
-`verify.sh`는 21개 절로 커널·문법·증거·표면·발명·자질·증명·상태·OOD를 차등 검증합니다.
+`verify.sh` differentially checks the kernel, grammar, evidence, surface realization, rule
+invention, feature grammar, certificates, state persistence and OOD abstention.
 
-## 현재 성능 (동일 프로브 170건)
+## Current performance (same 170 probes)
 
-| 축 | meowdlm 0.0053 | 원본 MeowLLM(step 2000) |
+| axis | meowdlm 0.0053 | original MeowLLM (step 2000) |
 |---|---|---|
-| 범주 판정(영역 내 150) | **105/150 = 0.700** | 70/150 = 0.467 |
-| 영역 밖 기권(20) | 3/20 (게이트 0.25 적용 시 16/20) | 0/20 |
-| 신규 OOD 20건 기권 | **20/20** (게이트 0.25) | — |
-| 파라미터 / gradient 스텝 | **0 / 0** | 3,447,552 / 2000 |
-| 근거 추적 | 증명 체인·반례 경로 | 없음 |
+| category judgement (in-domain, 150) | **105/150 = 0.700** | 70/150 = 0.467 |
+| out-of-domain abstention (20) | 3/20 (16/20 with the 0.25 gate) | 0/20 |
+| new OOD fixture abstention (20) | **20/20** (0.25 gate) | - |
+| parameters / gradient steps | **0 / 0** | 3,447,552 / 2000 |
+| evidence tracing | proof chains, counterexample paths | none |
 
-## 정직한 상태 (읽고 판단하세요)
+## Honest status (read before judging)
 
-- **성립**: 판정(0.700), 자질 문법(수·인격·격 21/21), 커널 질의 20/20, 문장 도출 286/1000,
-  증거 판정 170/170 파이썬 참조 일치, 상태 저장(해시·원자 커밋·저널 재생), OOD 단서 게이트.
-- **미성립**: 구 구조 **규칙 발명**(0.0048에서 훈련 이득 0 — S 재귀 붕괴 교정 후), **자연스러운
-  생성**(surface 15범주 중 자사 문법 통과 2/15), OOV 흡수(문자 유사도 매핑은 −3.1~−6.2pp 해로움).
-- **미완**: surface↔syntax 연결, certify 6-튜플 전환, 저널 재직렬화·tmp 정리, 영역 밖 기권게이트의
-  기본 경로 배선.
+- **Established**: judgement (0.700), feature grammar (person/number/case, 21/21), kernel queries
+  (20/20), sentence derivation (286/1000 corpus sentences), evidence decisions (170/170 against the
+  Python reference), state persistence (pre-load hash check, atomic commit, journal replay), OOD
+  cue-hit gate.
+- **Not established**: phrase-structure **rule invention** (0.0048: zero training gain after the
+  S-recursion collapse was fixed), **natural generation** (2/15 surface categories pass this
+  project's own grammar), OOV absorption (character-similarity mapping is harmful: -3.1 to -6.2 pp).
+- **Unfinished**: surface <-> syntax wiring, certify.l 6-tuple conversion, journal re-serialization
+  and tmp cleanup, wiring the OOD gate into the default path.
 
-철회된 수치는 `docs/release-0045..0048.md`에 이유와 함께 남겨 두었습니다(0.0045/46/47의 발명
-수치는 S 재귀 붕괴·'A' 편향이 섞인 값이라 철회).
+Retracted numbers stay in `docs/release-0045..0048.md` with the reasons (the invention figures in
+0.0045/0046/0047 mixed an S-recursion collapse and an alphabetical-category bias, so they were
+withdrawn).
 
-## 경계
+## Boundaries
 
-- 코퍼스는 고유 입력 201건·어휘 554입니다. 대규모 일반 영어에서의 수렴은 미검증입니다.
-- 신규 OOD 20건은 이 프로젝트에서 작성한 소규모 fixture입니다.
-- FNV-32 검증은 우발적 손상 검출용이며, 적대적 변조 방지는 별도 manifest가 필요합니다.
-- Maru 런타임은 외부 바이너리(`/research/dlm_v0.0284/maru-compiler`)를 사용합니다.
+- The corpus has 201 unique inputs and 554 vocabulary items. Convergence on open-domain English is
+  unverified.
+- The new OOD fixture (20 items) was written inside this project; it is not an external benchmark.
+- FNV-32 detects accidental corruption only; adversarial tampering needs a separate manifest.
+- The Maru runtime is an external binary (`/research/dlm_v0.0284/maru-compiler`).
