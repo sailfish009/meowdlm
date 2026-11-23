@@ -309,6 +309,149 @@ assert ab1 >= 0.75 * len(oos), (ab0, ab1)
 assert nab >= 0.75 * len(n1), (nab, len(n1))
 print(f'OOD-CUE-PASS 자질 21/21 | 영역내 {a0}→{a1} (-{a0-a1}) | 영역밖 기권 {ab0}→{ab1}/20 | 신규 OOD {nab}/20')
 PY2
+echo "== 22. 도출 보존 어휘 가지치기 (0.0054)"
+"$MARU" src/maru/boot.l src/maru/conversion.l src/meow/syntax.l src/meow/lexfix.l experiments/parity/lexfix54.l > /tmp/lexfix54.txt 2>&1
+python3 - <<'PY2'
+import re
+from pathlib import Path
+out = Path('/tmp/lexfix54.txt').read_text()
+b = re.search(r'BEFORE amb=(\d+) mult=(\d+) train=(\d+)/200 held=(\d+)/200 rev=(\d+)', out)
+a = re.search(r'AFTER  amb=(\d+) mult=(\d+) train=(\d+)/200 held=(\d+)/200 rev=(\d+)', out)
+assert b and a, out[:200]
+b = tuple(int(x) for x in b.groups()); a = tuple(int(x) for x in a.groups())
+assert a[2] == b[2], (b, a)          # train 도출 보존
+assert a[3] >= b[3], (b, a)          # held-out 비감소
+assert a[4] <= b[4], (b, a)          # 역순(셔플) 비증가
+assert a[0] < b[0], (b, a)           # 모호성 감소
+print(f'LEXFIX-PASS 도출 {b[2]}→{a[2]} 보존 | held {b[3]}→{a[3]} | 모호성 {b[0]}→{a[0]} | 역순 {b[4]}→{a[4]}')
+PY2
+echo "== 23. 도출 트리 추출 + 선형화 복원 (0.0055)"
+"$MARU" src/maru/boot.l src/maru/conversion.l src/meow/syntax.l src/meow/parse.l experiments/parity/parse55.l > /tmp/parse55.txt 2>&1
+python3 - <<'PY2'
+import re
+from pathlib import Path
+out = Path('/tmp/parse55.txt').read_text()
+m = re.search(r'ACCEPT (\d+)/300 trees=(\d+) roundtrip=(\d+) shape=(\d+)', out)
+assert m, out[:200]
+acc, trees, rt, sh = (int(x) for x in m.groups())
+assert acc > 50, acc
+assert trees == acc, (acc, trees)
+assert rt == acc, (acc, rt)
+assert sh == acc, (acc, sh)
+print(f'TREE-PASS 수용 {acc} | 트리 {trees} | roundtrip {rt} | shape {sh}')
+PY2
+echo "== 24. 누락 규칙 증분 + surface 토큰 순서 (0.0056)"
+"$MARU" src/maru/boot.l src/maru/conversion.l src/meow/syntax.l src/meow/surface.l experiments/parity/rules56_gate.l > /tmp/rules56.txt 2>&1
+python3 - <<'PY2'
+import re
+from pathlib import Path
+out = Path('/tmp/rules56.txt').read_text()
+b = re.search(r'BASE33\s+cov=(\d+) shuffle=(\d+) surf=(\d+)', out)
+v = re.search(r'V2\s+cov=(\d+) shuffle=(\d+) surf=(\d+)', out)
+assert b and v, out[:200]
+b = tuple(int(x) for x in b.groups()); v = tuple(int(x) for x in v.groups())
+assert v[0] >= b[0] + 10, (b, v)
+assert v[1] <= b[1] + 2, (b, v)
+assert v[2] >= b[2] + 1, (b, v)
+print(f'RULE-GAIN-PASS 도출 {b[0]}→{v[0]} | 셔플 {b[1]}→{v[1]} | surf {b[2]}→{v[2]}/15')
+PY2
+echo "== 25. 학습 경험 저장/재시작/기각 기억 (0.0057)"
+mkdir -p state/gen-1
+"$MARU" src/maru/boot.l src/maru/conversion.l src/meow/syntax.l src/meow/lexfix.l src/meow/state.l src/meow/exp.l data/lexfeat_data.l src/meow/lexfeat.l experiments/parity/exp57.l > /tmp/exp57.txt 2>&1
+python3 - <<'PY2'
+import re
+from pathlib import Path
+out = Path('/tmp/exp57.txt').read_text()
+m = re.search(r'EXP L=(\d+) R=(\d+) C=(\d+) total=(\d+)', out)
+assert m, out[:200]
+L, R, C, tot = (int(x) for x in m.groups())
+assert tot == L + R + C and tot > 10, (L, R, C, tot)
+assert 'RESUME-EQ 1' in out, out
+assert 'REJECT-MEM 1' in out and 'adopt-ok=1' in out, out
+cr = re.search(r'CEX-REPLAY (\d+)/(\d+)', out)
+assert cr and cr.group(1) == cr.group(2), cr
+size = Path('state/gen-1/experience.l').stat().st_size
+assert size <= 200 * 1024, size
+print(f'EXPERIENCE-PASS L={L} R={R} C={C} | 재시작 동등 | 기각 기억 | 반례 {cr.group(1)}/{cr.group(2)} | {size}B')
+PY2
+echo "== 26. 경험 적용 상태 재측정 (0.0058)"
+mkdir -p state/gen-2
+"$MARU" src/maru/boot.l src/maru/conversion.l src/meow/syntax.l src/meow/lexfix.l src/meow/state.l src/meow/exp.l src/meow/apply.l experiments/parity/learn58.l > /tmp/learn58.txt 2>&1 || { echo "  LEARN-FAIL"; tail -3 /tmp/learn58.txt; exit 1; }
+"$MARU" src/maru/boot.l src/maru/conversion.l src/meow/syntax.l src/meow/lexfix.l src/meow/state.l src/meow/exp.l src/meow/apply.l src/meow/surface.l experiments/parity/compare58_gate.l > /tmp/cmp58.txt 2>&1 || { echo "  COMPARE-FAIL"; tail -3 /tmp/cmp58.txt; exit 1; }
+python3 - <<'PY2'
+import re
+from pathlib import Path
+out = Path('/tmp/cmp58.txt').read_text()
+st = re.search(r'STATE records=(\d+) rules=(\d+) amb=(\d+)', out)
+a = re.search(r'COV-BASE (\d+)/1000 surf=(\d+)', out)
+b = re.search(r'COV-EXP  (\d+)/1000 surf=(\d+)', out)
+assert st and a and b, out[:200]
+rec, rules, amb = (int(x) for x in st.groups())
+a = tuple(int(x) for x in a.groups()); b = tuple(int(x) for x in b.groups())
+assert rec >= 15, st
+assert rules >= 36, st
+assert amb <= 580, st
+assert b[0] >= 320, b
+assert b[0] > a[0], (a, b)
+assert b[1] >= 4, b
+print(f'RECOMPARE-PASS 경험 {rec}건 적용 | 규칙 {rules} | 도출 {a[0]}→{b[0]}/1000 | 생성 {a[1]}→{b[1]}/15')
+PY2
+echo "== 27. 대체 가능성 검사 (0.0060)"
+"$MARU" src/maru/boot.l src/maru/conversion.l src/meow/syntax.l experiments/parity/subst60.l > /tmp/subst60.txt 2>&1
+python3 - <<'PY2'
+import re
+from pathlib import Path
+out = Path('/tmp/subst60.txt').read_text()
+b = re.search(r'SUBST pass=(\d+) miss=(\d+)', out)
+r = re.search(r'SUBST-REPAIR-L pass=(\d+) miss=(\d+)', out)
+assert b and r, out[:200]
+b = tuple(int(x) for x in b.groups()); r = tuple(int(x) for x in r.groups())
+assert r[0] > b[0], (b, r)
+assert len(re.findall(r'MISS \d+ ', out)) >= 4, out
+print(f'SUBSTITUTABILITY-PASS 기준 {b[0]}/9 → 수정 후 {r[0]}/9 (실패 {r[1]})')
+PY2
+echo "== 28. 반례 표적 최소 수정 루프 (0.0061)"
+"$MARU" src/maru/boot.l src/maru/conversion.l src/meow/syntax.l data/lexfeat_data.l src/meow/lexfeat.l experiments/parity/autofix61.l > /tmp/autofix61.txt 2>&1
+python3 - <<'PY2'
+import re
+from pathlib import Path
+out = Path('/tmp/autofix61.txt').read_text()
+a = re.search(r'START agree=(\d+)/9 cov=(\d+)/60 cands=(\d+)', out)
+b = re.search(r'FINAL agree=(\d+)/9 cov=(\d+)/60 adopted=(\d+)', out)
+assert a and b, out[:200]
+a = tuple(int(x) for x in a.groups()); b = tuple(int(x) for x in b.groups())
+assert a[2] >= 100, a
+assert b[1] >= a[1], (a, b)
+assert b[2] == 0, b
+print(f'CONSTRAINT-GAP-PASS 후보 {a[2]}개 탐색 · 채택 {b[2]} · agree {b[0]}/9 · cov {b[1]}/60')
+PY2
+echo "== 29. 자질 결합 + 경험 자동 기록 (0.0062)"
+mkdir -p state/gen-4
+"$MARU" src/maru/boot.l src/maru/conversion.l src/meow/syntax.l data/lexfeat_data.l src/meow/lexfeat.l src/meow/state.l src/meow/exp.l src/meow/apply.l src/meow/featgate.l experiments/parity/featgate62.l > /tmp/feat62.txt 2>&1
+python3 - <<'PY2'
+import re
+from pathlib import Path
+out = Path('/tmp/feat62.txt').read_text()
+m = re.search(r'AGREE struct=(\d+)/9 gate=(\d+)/9 gate\+fix=(\d+)/9 applied=(\d+)/9', out)
+assert m, out[:200]
+st, ga, gx, ap = (int(x) for x in m.groups())
+assert st < ga <= gx, (st, ga, gx)
+assert ap == gx, (gx, ap)
+assert ap >= 7, ap
+assert 'RECORDED L=4' in out, out
+assert re.search(r'RELOAD \(\d+ 4\)', out), out
+cov = re.search(r'COV struct=(\d+)/60 gate=(\d+)/60 gate\+fix=(\d+)/60', out)
+assert cov and cov.group(1) == cov.group(3), cov
+print(f'FEAT-BIND-PASS struct {st} → gate {ga} → fix {gx} → applied {ap} | cov {cov.group(3)}/60 보존')
+PY2
+echo "V0062-MEOWDLM-FEAT-BIND-PASS"
+echo "V0061-MEOWDLM-CONSTRAINT-GAP-PASS"
+echo "V0060-MEOWDLM-SUBSTITUTABILITY-PASS"
+echo "V0058-MEOWDLM-RECOMPARE-PASS"
+echo "V0057-MEOWDLM-EXPERIENCE-PASS"
+echo "V0056-MEOWDLM-RULE-GAIN-PASS"
+echo "V0055-MEOWDLM-TREE-PASS"
+echo "V0054-MEOWDLM-LEXFIX-PASS"
 echo "V0053-MEOWDLM-OOD-CUE-PASS"
 echo "V0052-MEOWDLM-FEAT-PASS"
 echo "V0051-MEOWDLM-STATE-PASS"

@@ -1,8 +1,3 @@
-;;; surface.l — 도식 선택 + 슬롯 채움 (meowdlm 0.0016 계보 이관)
-;;;
-;;; meowdlm realize.py 의 결정 경로를 Maru 로 옮긴다. 해시는 sha256 대신 FNV-1a 64 를 쓴다
-;;; (Maru 에 암호 해시가 없다). 구현은 FNV-1a 32비트(모듈러스 2^32)이다.
-;;; 데이터: *frames* = (cat (token...) mean_q16), *slots* = (frame-index position (word...))
 (define-function s-nth (xs n) (if (= n 0) (car xs) (s-nth (cdr xs) (- n 1))))
 (define-function s-len-acc (xs a) (if (pair? xs) (s-len-acc (cdr xs) (+ a 1)) a))
 (define-function s-len (xs) (s-len-acc xs 0))
@@ -37,3 +32,6 @@
 (define-function s-finish (out) (list->string (s-merge (s-cap (s-cat-chars out)) (list 46))))
 (define-function s-try (pool seed cat slots attempt tries) (if (>= attempt tries) () (let* ((entry (s-pick-frame pool seed cat attempt)) (fi (s-nth entry 0)) (fr (s-nth entry 1)) (toks (s-nth fr 1)) (out (s-render toks fi slots 0 seed attempt ()))) (if (pair? out) (s-finish out) (s-try pool seed cat slots (+ attempt 1) tries)))))
 (define-function s-realize (cat seed target frames slots tries) (let ((pool (s-sort-near (s-frames-of cat frames) target ()))) (if (not (pair? pool)) () (s-try pool seed cat slots 0 tries))))
+(define-function s-tok-done (cur acc) (if (pair? cur) (cons (list->string (s-rev cur)) acc) acc))
+(define-function s-tok-split (str i n cur acc) (if (<= n i) (s-tok-done cur acc) (let ((c (string-at str i))) (if (or (= c 32) (= c 46) (= c 44) (= c 33) (= c 63)) (s-tok-split str (+ i 1) n () (s-tok-done cur acc)) (s-tok-split str (+ i 1) n (cons (if (and (<= 65 c) (<= c 90)) (+ c 32) c) cur) acc)))))
+(define-function s-tokens (str) (s-rev (s-tok-split str 0 (string-length str) () ())))
