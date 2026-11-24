@@ -1,0 +1,56 @@
+;;; an_lib.l — S2 하네스 라이브러리: 고정 20케이스 + 코퍼스(S1 sem) 대명사 감사.
+(load "data/ana_fixture.l")
+
+(define *an-arm* 0)
+(define *an-start* 0)
+(define *an-limit* 0)
+(define *an-prev* ())
+(define-function an-push (sem)
+  (if (pair? sem) (set *an-prev* (cons sem (an-take *an-prev* 2))) 0))
+
+(define-function an-nth2 (xs n) (an-nth xs n))
+
+;; ---------- 고정 케이스 ----------
+(define-function an-case (c)
+  (let* ((id (an-nth c 0)) (sems (an-nth c 1)) (pron (an-nth c 2)) (exp (an-nth c 3)))
+    (let* ((win (an-window (an-rev sems))) (r (an-resolve pron win))
+           (got (if (equal (car r) "ok") (concat-strings "ok:" (an-nth r 1))
+                  (concat-strings "no:" (an-nth r 1)))))
+      (print "C" id "|" got "|" exp "|" (if (equal got exp) 1 0) "\n")
+      (if (equal got exp) 1 0))))
+(define-function an-cases (cs ok)
+  (if (not (pair? cs)) ok
+    (an-cases (cdr cs) (+ ok (an-case (car cs))))))
+
+;; ---------- 코퍼스(S1 sem) 대명사 감사 ----------
+(define-function an-probe-subj (i sem)
+  (let ((s (an-subj sem)))
+    (if (and (string? s) (an-pron? s))
+      (let ((r (an-resolve s (an-window *an-prev*))))
+        (print "P" i "|" s "|" (car r) "|" (an-nth r 1) "\n")
+        (list 1 (if (equal (car r) "ok") 1 0)))
+      (list 0 0))))
+(define-function an-probe-obj (i sem)
+  (let ((o (an-obj-head sem)))
+    (if (and (string? o) (an-pron? o))
+      (let ((r (an-resolve-obj o sem (an-window *an-prev*))))
+        (print "Q" i "|" o "|" (car r) "|" (an-nth r 1) "\n")
+        (list 1 (if (equal (car r) "ok") 1 0)))
+      (list 0 0))))
+(define-function an-one (i sem)
+  (let ((a (an-probe-subj i sem)) (b (an-probe-obj i sem)))
+    (an-push sem)
+    (list (+ (an-nth a 0) (an-nth b 0)) (+ (an-nth a 1) (an-nth b 1)))))
+(define-function an-total ()
+  (let ((n (sm-len *corpus*)) (u (+ *an-start* *an-limit*)))
+    (if (or (= *an-limit* 0) (> u n)) n u)))
+(define-function an-corpus (i upto acc)
+  (if (>= i upto) acc
+    (let* ((toks (sm-nth *corpus* i)) (n (sm-len toks)))
+      (sm-reset toks *lexicon*)
+      (let ((nodes (if (= n 0) () (sm-cell "S" 0 n))))
+        (if (pair? nodes)
+          (let* ((sem (sm-sem (car nodes))) (r (an-one i sem)))
+            (an-corpus (+ i 1) upto
+              (list (+ (an-nth acc 0) (an-nth r 0)) (+ (an-nth acc 1) (an-nth r 1)))))
+          (an-corpus (+ i 1) upto acc))))))

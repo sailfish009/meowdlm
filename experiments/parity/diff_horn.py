@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """커널 포트 차등: Maru 판정 vs meowdlm(파이썬) 판정."""
-import re, sys
+import os, re, sys
 from pathlib import Path
-M = Path('/research/meowdlm_v0.0039')
+M = Path(os.environ.get('MREF', '/research/BACKUP/meowdlm_v0.0039'))
 sys.path.insert(0, str(M / 'src'))
 import kernel as K, syntax as S
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """도식 실현 차등: Maru vs 같은 FNV 규칙의 파이썬 참조(문자열 단위 일치 확인)."""
-import re, sys
+import os, re, sys
 from collections import Counter
 from pathlib import Path
-M = Path('/research/meowdlm_v0.0039')
+M = Path(os.environ.get('MREF', '/research/BACKUP/meowdlm_v0.0039'))
 sys.path.insert(0, str(M / 'src'))
 import realize as R
 

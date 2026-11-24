@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """증거 질량 판정 차등: Maru vs meowdlm 파이썬 참조(MASS_MODE=idf)."""
-import json, re, sys
+import json, os, re, sys
+import os
 from pathlib import Path
-M = Path('/research/meowdlm_v0.0039')
+M = Path(os.environ.get('MREF', '/research/BACKUP/meowdlm_v0.0039'))
 sys.path.insert(0, str(M / 'src'))
 import infer as I, induct
 P = json.loads(Path('data/probe_cues.json').read_text())

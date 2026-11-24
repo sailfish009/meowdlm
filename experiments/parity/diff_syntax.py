@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """문장 도출 포트 차등: Maru 판정 vs meowdlm 파이썬 참조(P2: 미지어 침묵)."""
-import re, sys
+import os, re, sys
 from pathlib import Path
-M = Path('/research/meowdlm_v0.0039')
+M = Path(os.environ.get('MREF', '/research/BACKUP/meowdlm_v0.0039'))
 sys.path.insert(0, str(M / 'src'))
 import syntax as S, lexfix as L, lexadd as A, declare as D
 

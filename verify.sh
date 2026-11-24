@@ -2,6 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 MARU="${MARU:-/research/dlm_v0.0284/maru-compiler}"
+export MARU
 SRC=(src/maru/boot.l src/maru/conversion.l src/meow/horn.l src/meow/query.l)
 echo "== 1. Maru 커널 자체 검사"
 "$MARU" "${SRC[@]}" tests/horn-tests.l | tail -2
@@ -89,9 +90,9 @@ PY2
 echo "== 10. 단서 추출 이관 (0.0043): 참조 문자열 일치"
 "$MARU" src/maru/boot.l src/maru/conversion.l src/meow/induct.l experiments/parity/induct_start.l > /tmp/ind43.txt 2>&1
 python3 - <<'PY2'
-import json, sys
+import json, os, sys
 from pathlib import Path
-M = Path('/research/meowdlm_v0.0039')
+M = Path(os.environ.get('MREF', '/research/BACKUP/meowdlm_v0.0039'))
 sys.path.insert(0, str(M / 'src'))
 import induct as I
 P = json.loads(Path('data/probe_cues.json').read_text())
@@ -444,23 +445,259 @@ cov = re.search(r'COV struct=(\d+)/60 gate=(\d+)/60 gate\+fix=(\d+)/60', out)
 assert cov and cov.group(1) == cov.group(3), cov
 print(f'FEAT-BIND-PASS struct {st} → gate {ga} → fix {gx} → applied {ap} | cov {cov.group(3)}/60 보존')
 PY2
-echo "V0062-MEOWDLM-FEAT-BIND-PASS"
-echo "V0061-MEOWDLM-CONSTRAINT-GAP-PASS"
-echo "V0060-MEOWDLM-SUBSTITUTABILITY-PASS"
-echo "V0058-MEOWDLM-RECOMPARE-PASS"
-echo "V0057-MEOWDLM-EXPERIENCE-PASS"
-echo "V0056-MEOWDLM-RULE-GAIN-PASS"
-echo "V0055-MEOWDLM-TREE-PASS"
-echo "V0054-MEOWDLM-LEXFIX-PASS"
-echo "V0053-MEOWDLM-OOD-CUE-PASS"
-echo "V0052-MEOWDLM-FEAT-PASS"
-echo "V0051-MEOWDLM-STATE-PASS"
-echo "V0050-MEOWDLM-CERT-PASS"
-echo "V0049-MEOWDLM-FEATURE-GRAMMAR-PASS"
-echo "V0048-MEOWDLM-NO-COLLAPSE-PASS"
-echo "V0046-MEOWDLM-SPAN-PASS"
-echo "V0045-MEOWDLM-INVENT-PASS"
-echo "V0044-MEOWDLM-WEB-LEARN-PASS"
-echo "V0043-MEOWDLM-INDUCT-PASS"
-echo "V0042-MEOWDLM-OOV-NULL-PASS"
-echo "V0041-MEOWDLM-REGRESSION-PASS"
+echo "== 30. OOV 범주 가설(형태론·표제어) (0.0063)"
+"$MARU" src/maru/boot.l src/maru/conversion.l src/meow/syntax.l src/meow/morph.l experiments/parity/oov63.l > /tmp/oov63.txt 2>&1
+python3 - <<'PY2'
+import re
+from pathlib import Path
+out = Path('/tmp/oov63.txt').read_text()
+a = re.search(r'A base\s+cov=(\d+) shuf=(\d+)', out)
+b = re.search(r'B morph\s+cov=(\d+) shuf=(\d+)', out)
+e = re.search(r'E one\s+cov=(\d+) shuf=(\d+)', out)
+assert a and b and e, out[:300]
+a = tuple(int(x) for x in a.groups()); b = tuple(int(x) for x in b.groups()); e = tuple(int(x) for x in e.groups())
+assert b[0] >= 380, b
+assert b[0] > a[0], (a, b)
+assert e[1] >= b[1] - 1, (b, e)   # 예산 축소가 셔플을 줄이지 못함
+print(f'OOV-HYPOTHESIS-PASS 도출 {a[0]}→{b[0]} (+{b[0]-a[0]}) | 셔플 {a[1]}→{b[1]} | 예산형 one={e[0]}/{e[1]} (대가 불변)')
+PY2
+echo "== 31. 단일 선언 → 인식기·생성기 (0.0064, 0.0067/0.0068 드라이버로 재측정)"
+"$MARU" src/maru/boot.l src/maru/conversion.l data/lexfeat_data.l src/meow/lexfeat.l \
+        src/meow/fgw.l src/meow/fgrammar.l experiments/parity/fgm68.l > /tmp/fgm68.txt 2>&1
+python3 - <<'PY6'
+import re
+from pathlib import Path
+out = Path('/tmp/fgm68.txt').read_text()
+par = re.search(r'PARITY (\d+)/9', out)
+gen = re.search(r'GEN all=(\d+) lf=(\d+) rt=(\d+)', out)
+assert par and gen, out[:400]
+g = [int(x) for x in gen.groups()]
+assert int(par.group(1)) == 9, par.group(0)
+assert g[0] >= 15 and g[1] == g[0] == g[2], gen.group(0)
+print(f'FGRAMMAR-PASS(재측정) parity {par.group(1)}/9 gen {g[0]} lf {g[1]} rt {g[2]}')
+PY6
+echo "V0064-MEOWDLM-FGRAMMAR-PASS"
+
+echo "== 32. 비단말 인터페이스 선언 (0.0065, 0.0068 드라이버)"
+python3 - <<'PY6'
+from pathlib import Path
+decl = Path('experiments/parity/fgm68.l').read_text()
+assert "'=>" in decl, 'no interface declaration'
+assert "'bind" not in decl, 'bind hack still present'
+print('IFACE-DECL => 인터페이스 사용 · bind 0건')
+PY6
+echo "V0065-MEOWDLM-INTERFACE-DECL-PASS"
+
+echo "== 33. 인터페이스 기본값 값 대조 (0.0066, 0.0068 에서 실제 작동 확인)"
+python3 - <<'PY6'
+import re
+from pathlib import Path
+out = Path('/tmp/fgm68.txt').read_text()
+m = re.search(r'TEETH-S-DEFAULT n=(\d+) accepted=(\d+) 3rd-accepted=(\d+) i-sleep=(true|false)', out)
+assert m, out[:400]
+assert int(m.group(3)) == 0, f'S-기본값 차분에서 3인칭이 수용됨 {m.group(0)}'
+assert m.group(4) == 'true', '1인칭 양성 거부'
+print(f'IFACE-CHECK-PASS S-차분 3인칭 {m.group(3)}/{m.group(1)} 수용 · i-sleep {m.group(4)}')
+PY6
+echo "V0066-MEOWDLM-INTERFACE-CHECK-PASS"
+
+echo "== 34. 지역 치환표 · 알파 치환 · 중복 비단말 (0.0067)"
+python3 - <<'PY6'
+import re
+from pathlib import Path
+out = Path('/tmp/fgm68.txt').read_text()
+alpha = re.search(r'ALPHA-BAD-AGR (true|false)', out).group(1)
+dup1 = re.search(r'DUP-SAME-NUM (true|false)', out).group(1)
+dup2 = re.search(r'DUP-DIFF-NUM (true|false)', out).group(1)
+assert alpha == 'false', '알파 치환 악성 수용'
+assert dup1 == 'true' and dup2 == 'true', '중복 비단말 충돌'
+print(f'LOCAL-SCOPE-PASS alpha={alpha} dup-same={dup1} dup-diff={dup2}')
+PY6
+echo "V0067-MEOWDLM-LOCAL-SCOPE-PASS"
+
+echo "== 35. 증명서 전노드 재유도 · 레이아웃 보존 변조 (0.0068→0.0070)"
+"$MARU" src/maru/boot.l src/maru/conversion.l data/lexfeat_data.l src/meow/lexfeat.l \
+        src/meow/fgw.l src/meow/fgrammar.l experiments/parity/fgm70.l > /tmp/fgm70.txt 2>&1
+python3 - <<'PY7'
+import re
+from pathlib import Path
+out = Path('/tmp/fgm70.txt').read_text()
+def one(p, g=1):
+    m = re.search(p, out)
+    assert m, (p, out[:500])
+    return m.group(g)
+par, gen = one(r'PARITY (\d+)/9'), re.search(r'GEN all=(\d+) lf=(\d+) rt=(\d+)', out)
+cert = re.search(r'CERT trees=(\d+) chk=(\d+) lin-ok=(\d+)', out)
+neg = re.search(r'NEGMUT tag=\((\d+) (\d+)\) ifv=\((\d+) (\d+)\) none=\((\d+) (\d+)\) keydel=\((\d+) (\d+)\) sem=\((\d+) (\d+)\)', out)
+deep = re.search(r'NEGDEEP leaf=\((\d+) (\d+)\) ungram=\((\d+) (\d+)\)', out)
+assert gen and cert and neg and deep, out[:500]
+g = [int(x) for x in gen.groups()]; c = [int(x) for x in cert.groups()]
+n = [int(x) for x in neg.groups()]; d = [int(x) for x in deep.groups()]
+assert int(par) == 9 and g[0] >= 15 and g[1] == g[0] == g[2], gen.group(0)
+assert c[0] >= 15 and c[1] == c[0] == c[2], cert.group(0)
+# 각 변조 팔: 변조가 실제로 일어났고(mut>0) 수용 0
+assert all(n[k] == 0 and n[k+1] == c[0] for k in range(0, len(n), 2)), neg.group(0)
+assert all(d[k] == 0 and d[k+1] == c[0] for k in range(0, len(d), 2)), deep.group(0)
+print(f'CERT-ALLNODE-PASS cert {c[0]}/{c[1]}/{c[2]} | mut-arms all 0/{c[0]} (5+2 arms)')
+PY7
+echo "V0068-MEOWDLM-CERT-STRICT-PASS"
+
+echo "== 36. 의미 슬롯 · 대조기 ablation · bind 순서 · fail-closed (0.0069→0.0070)"
+python3 - <<'PY7'
+import re
+from pathlib import Path
+out = Path('/tmp/fgm70.txt').read_text()
+abl = re.search(r'ABLATION off=(\d+)/(\d+) on=(\d+)', out)
+bind = re.search(r'BIND-ORDER u1-sing (\w+) u2-sing (\w+) u1-pl (\w+) u2-pl (\w+)', out)
+gu = re.search(r'GUARD-UNREG (\w+)', out)
+sem = re.search(r'COPSEM .*? => \(clause \(np [^)]*\) \(vp (\S+) \(comp (\S+)', out)
+assert abl and bind and gu and sem, out[:500]
+a = [int(x) for x in abl.groups()]
+b = bind.groups()
+assert a[0] == a[1] and a[2] == 0, f'ablation 판별력 없음 {abl.group(0)}'
+assert b[0] == b[1] == 'false' and b[2] == b[3] == 'true', f'bind 순서 의존 {bind.group(0)}'
+assert gu.group(1) == 'false', f'미등록 guard 가 통과 {gu.group(0)}'
+assert sem.group(1) == 'was' and sem.group(2) != '()', f'COP 보어 의미 소실 {sem.group(0)}'
+print(f'SEM-ABLATION-PASS ablation off {a[0]}/{a[1]} on {a[2]} | bind {b} | guard {gu.group(1)} | cop {sem.group(0)[:60]}')
+PY7
+echo "V0069-MEOWDLM-SEM-PERF-PASS"
+
+echo "== 37. 규칙 인덱스 전문화 처리량 (0.0069, 3회 중앙값·시작 차감·\$MARU 사용) (0.0070)"
+python3 - <<'PY7'
+import os, subprocess, time, statistics
+maru = os.environ.get('MARU', 'maru')
+base = ("src/maru/boot.l src/maru/conversion.l data/lexfeat_data.l src/meow/lexfeat.l "
+        "src/meow/fgw.l src/meow/fgrammar.l")
+def run(f):
+    t = []
+    out = ''
+    for _ in range(3):
+        t0 = time.time()
+        out = subprocess.run(f'{maru} {base} experiments/parity/perf69b_{f}.l',
+                             shell=True, capture_output=True, text=True).stdout.strip()
+        t.append(time.time() - t0)
+    return out, statistics.median(t)
+b_out, b_t = run('base')
+i_out, i_t = run('interp')
+x_out, x_t = run('idx')
+assert int(b_out.split()[-1]) == 0
+assert int(i_out.split()[-1]) == int(x_out.split()[-1]) == 800, (i_out, x_out)
+i_parse = i_t - b_t
+x_parse = x_t - b_t
+assert x_parse < i_parse, (i_parse, x_parse)
+print(f'PERF-SPEC-PASS parses 800 | base {b_t*1000:.0f}ms interp {i_parse*1000:.0f}ms idx {x_parse*1000:.0f}ms ({i_parse/x_parse:.2f}x)')
+PY7
+echo "V0070-MEOWDLM-ALLNODE-PASS"
+
+echo "== 38. S1 sem-syntax: 458어휘 33규칙 문법의 트리+sem+증명서 (sem-loop-1 이관)"
+mkdir -p state
+: > state/sem_dump.txt
+: > /tmp/mw_syn071.txt
+for st in 0 200 400 600 800; do
+  printf '(set *sm-start* %s)\n(set *sm-limit* 200)\n(define *arm-ready* 0)\n' "$st" > /tmp/mw_smarm.l
+  "$MARU" src/maru/boot.l src/maru/conversion.l src/meow/sem.l experiments/parity/sem_lib.l \
+          /tmp/mw_smarm.l experiments/parity/sem_start.l > /tmp/mw_sm$st.txt 2>&1 || true
+  grep '^D' /tmp/mw_sm$st.txt >> state/sem_dump.txt
+  printf '(set *syn-start* %s)\n(set *syn-limit* 200)\n(define *arm-ready* 0)\n' "$st" > /tmp/mw_synarm.l
+  "$MARU" src/maru/boot.l src/maru/conversion.l src/meow/syntax.l src/meow/sem.l \
+          experiments/parity/syn_lib.l /tmp/mw_synarm.l experiments/parity/syn_accepts_start.l \
+          > /tmp/mw_syn$st.txt 2>&1 || true
+  grep '^C' /tmp/mw_syn$st.txt >> /tmp/mw_syn071.txt
+done
+python3 - <<'PY8' || { echo SEM458-GATE-FAIL; exit 1; }
+import re
+D, C = {}, {}
+for l in open('state/sem_dump.txt'):
+    m = re.match(r'D(\d+)\|([01])\|', l)
+    if m: D[int(m[1])] = int(m[2])
+for l in open('/tmp/mw_syn071.txt'):
+    m = re.match(r'C(\d+)\|([01])$', l.strip())
+    if m: C[int(m[1])] = int(m[2])
+assert len(D) == 1000 and len(C) == 1000, (len(D), len(C))
+d, a = sum(D.values()), sum(C.values())
+mism = [k for k in range(1000) if D.get(k) != C.get(k)]
+print(f'  recognizer accepted={a}/1000 · parser derived={d}/1000 · parity mismatch={len(mism)}')
+print(f'  G-S1a derived >= 250 : {d >= 250} ({d})')
+print(f'  G-S1b parity 1000/1000 : {len(mism) == 0}')
+assert d >= 250 and d == a and not mism
+print('V0071-SEM458-PASS')
+PY8
+python3 tools/sem_oracle.py | sed 's/^/  /'
+python3 - <<'PY8' || { echo SEM-ORACLE-FAIL; exit 1; }
+import subprocess
+out = subprocess.run(['python3', 'tools/sem_oracle.py'], capture_output=True, text=True).stdout
+assert 'DERIVED 286/1000' in out and 'SEM 286/286' in out and 'CERT 286/286' in out, out[:200]
+print('V0071-SEM-ORACLE-PASS')
+PY8
+
+echo "== 39. S2 대명사 해소: 고정 20케이스 + 상수 제거 + 코퍼스 감사"
+printf '(set *an-arm* 0)\n(define *arm-ready* 0)\n' > /tmp/mw_anfix.l
+"$MARU" src/maru/boot.l src/maru/conversion.l src/meow/sem.l experiments/parity/sem_lib.l \
+        src/meow/an.l experiments/parity/an_lib.l /tmp/mw_anfix.l experiments/parity/an_start.l \
+        > /tmp/mw_anfix.txt 2>&1 || true
+grep -E '^FIXOK' /tmp/mw_anfix.txt | sed 's/^/  /'
+printf '(set *nm-ana* 1)\n(define *arm-ready* 0)\n' > /tmp/mw_nmana.l
+"$MARU" src/maru/boot.l src/maru/conversion.l data/lexfeat_data.l src/meow/lexfeat.l \
+        src/meow/fgw.l src/meow/fgrammar.l experiments/parity/fgdecl70b.l src/meow/an.l src/meow/nm.l \
+        /tmp/mw_nmana.l experiments/parity/nm_start.l > /tmp/mw_nmana.txt 2>&1 || true
+grep -E '^PRONANA' /tmp/mw_nmana.txt | sed 's/^/  /'
+: > state/an_corpus.txt
+for st in 0 200 400 600 800; do
+  printf '(set *an-arm* 1)\n(set *an-start* %s)\n(set *an-limit* 200)\n(define *arm-ready* 0)\n' "$st" > /tmp/mw_anarm.l
+  "$MARU" src/maru/boot.l src/maru/conversion.l src/meow/sem.l experiments/parity/sem_lib.l \
+          src/meow/an.l experiments/parity/an_lib.l /tmp/mw_anarm.l experiments/parity/an_start.l \
+          > /tmp/mw_anc$st.txt 2>&1 || true
+  grep -E '^[PQ][0-9]' /tmp/mw_anc$st.txt >> state/an_corpus.txt
+done
+python3 tools/an_oracle.py | sed 's/^/  /' || { echo AN-ORACLE-FAIL; exit 1; }
+python3 - <<'PY8' || { echo ANA-GATE-FAIL; exit 1; }
+import re
+fix = open('/tmp/mw_anfix.txt').read()
+m = re.search(r'FIXOK (\d+)/(\d+)', fix)
+assert m, fix[:200]
+fx, ftot = int(m[1]), int(m[2])
+ana = open('/tmp/mw_nmana.txt').read()
+pm = re.search(r'PRONANA total=(\d+) resolved=(\d+) abstain=(\d+)', ana)
+assert pm, ana[:200]
+total, res, abst = (int(x) for x in pm.groups())
+args = [l.strip() for l in ana.split('\n') if l.startswith('ANARG ')]
+PRON = {'i','me','you','he','she','him','it','they','them','we','us'}
+left = [a for a in args if a.split('|')[1] in PRON]
+corp = [l.strip() for l in open('state/an_corpus.txt') if l.strip()]
+print(f'  fixture {fx}/{ftot} | pron args total={total} resolved={res} abstain={abst} | 남은 상수={len(left)}')
+print(f'  corpus pron={len(corp)} (해소 {sum(1 for c in corp if c.split("|")[2] == "ok")})')
+print(f'  G-S2a 대명사 상수 0 : {len(left) == 0 and total > 0}')
+print(f'  G-S2b 고정 20케이스 : {fx == ftot}')
+print(f'  G-S2c 전건 분류 : {res + abst == total == len(args)}')
+assert fx == ftot and not left and total == len(args) and res + abst == total
+print('V0071-ANA-PASS')
+PY8
+
+echo "== 40. S3 수 동치 계층: KB 조회 3팔 (off/on/붕괴)"
+"$MARU" src/maru/boot.l src/maru/conversion.l data/lexfeat_data.l src/meow/lexfeat.l \
+        src/meow/fgw.l src/meow/fgrammar.l experiments/parity/fgdecl70b.l src/meow/an.l src/meow/nm.l \
+        experiments/parity/nm_start.l > state/nm_atoms.txt 2>&1 || true
+python3 tools/eq_build.py < state/nm_atoms.txt | sed 's/^/  /' || { echo EQBUILD-FAIL; exit 1; }
+"$MARU" src/maru/boot.l src/maru/conversion.l src/meow/eq.l experiments/parity/eq_start.l \
+        > /tmp/mw_eq.txt 2>&1 || true
+grep '^EQARM' /tmp/mw_eq.txt | sed 's/^/  /'
+python3 tools/eq_oracle.py > /tmp/mw_eq_oracle.txt 2>&1 || { echo EQ-ORACLE-FAIL; tail -3 /tmp/mw_eq_oracle.txt; exit 1; }
+grep '^EQ' /tmp/mw_eq.txt > /tmp/mw_eq_m.txt
+grep '^EQ' /tmp/mw_eq_oracle.txt > /tmp/mw_eq_o.txt
+diff -q /tmp/mw_eq_m.txt /tmp/mw_eq_o.txt >/dev/null || { echo EQ-PARITY-FAIL; diff /tmp/mw_eq_m.txt /tmp/mw_eq_o.txt | head -5; exit 1; }
+python3 - <<'PY8' || { echo EQUIV-GATE-FAIL; exit 1; }
+import re
+t = open('/tmp/mw_eq_m.txt').read()
+arm = {int(m[1]): tuple(int(x) for x in m.groups()[1:])
+       for m in re.finditer(r'EQARM (\d) correct=(\d+) hit=(\d+) wrong=(\d+) of=(\d+)', t)}
+n = arm[1][3]
+r = {k: v[0] / v[3] for k, v in arm.items()}
+print(f'  rates: off={r[0]:.2f} on={r[1]:.2f} overmerge={r[2]:.2f} (n={n}) | Maru=oracle')
+print(f'  G-S3a on >= 0.90 : {r[1] >= 0.90}')
+print(f'  G-S3b off <= 0.50 : {r[0] <= 0.50}')
+print(f'  G-S3c 오병합 <= 0.60 : {r[2] <= 0.60}')
+assert r[1] >= 0.90 and r[0] <= 0.50 and r[2] <= 0.60
+print('V0071-EQUIV-PASS')
+PY8
+
+echo "V0071-MEOWDLM-SEMLOOP-PASS"
